@@ -1,11 +1,11 @@
-import { LogLevel, NestApplicationOptions } from '@nestjs/common';
+import { LogLevel } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   // Define all available log levels, ensuring they match your NestJS version.
-  // Add 'fatal' only if your version supports it.
-  const allLogLevels: LogLevel[] = ['verbose', 'debug', 'log', 'warn', 'error', 'fatal'];
+  // Note: Your environment does not support 'fatal', so it must be removed.
+  const allLogLevels: LogLevel[] = ['verbose', 'debug', 'log', 'warn', 'error'];
 
   // Determine the desired log level from the environment variable.
   const envLevel = (process.env.LOG_LEVEL as LogLevel) || 'log';
@@ -14,20 +14,17 @@ async function bootstrap() {
   const startIndex = allLogLevels.indexOf(envLevel);
 
   // If the level is valid, include all more-severe levels.
+  // Add a type assertion to inform TypeScript that the result is indeed LogLevel[].
   const activeLogLevels = (startIndex !== -1)
-    ? allLogLevels.slice(startIndex)
+    ? allLogLevels.slice(startIndex) as LogLevel[]
     : ['log'];
 
-  // Create the application with the resolved log levels.
-  const appOptions: NestApplicationOptions = {
+  const app = await NestFactory.create(AppModule, {
     logger: activeLogLevels,
-  };
-  const app = await NestFactory.create(AppModule, appOptions);
+  });
 
-  // Use app.enableCors() method after creating the application.
+  // Call `enableCors()` after creating the application instance.
   app.enableCors({
-    // You can also use a simple `true` to enable with default settings
-    // or customize the options here.
     origin: true,
   });
 
