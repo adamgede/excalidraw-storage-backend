@@ -1,4 +1,5 @@
-import { LogLevel, NestFactory, NestApplicationOptions } from '@nestjs/core';
+import { LogLevel, NestApplicationOptions } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
 /**
