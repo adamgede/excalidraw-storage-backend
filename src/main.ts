@@ -1,27 +1,34 @@
-import { LogLevel } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import { LogLevel, NestFactory, NestApplicationOptions } from '@nestjs/core';
 import { AppModule } from './app.module';
 
-async function bootstrap() {
-  // Define all available log levels, ensuring they match your NestJS version.
-  // Note: Your environment does not support 'fatal', so it must be removed.
+/**
+ * Returns an array of log levels based on the environment variable.
+ * @param envLevel The desired starting log level (e.g., 'verbose', 'debug', 'warn').
+ */
+function getLogLevels(envLevel: string | undefined): LogLevel[] {
+  // Define all available log levels, in order from most verbose to least.
   const allLogLevels: LogLevel[] = ['verbose', 'debug', 'log', 'warn', 'error'];
 
-  // Determine the desired log level from the environment variable.
-  const envLevel = (process.env.LOG_LEVEL as LogLevel) || 'log';
+  // Ensure the environment variable maps to a valid LogLevel.
+  // We use `includes` to safely check if the string exists in our known levels.
+  const isValidLevel = allLogLevels.includes(envLevel as LogLevel);
+  if (!isValidLevel) {
+    // If the value is invalid, default to 'log'.
+    return ['log'];
+  }
 
-  // Get the index of the specified level.
-  const startIndex = allLogLevels.indexOf(envLevel);
+  // Slice the array to include the specified level and all more-severe levels.
+  const startIndex = allLogLevels.indexOf(envLevel as LogLevel);
+  return allLogLevels.slice(startIndex);
+}
 
-  // If the level is valid, include all more-severe levels.
-  // Add a type assertion to inform TypeScript that the result is indeed LogLevel[].
-  const activeLogLevels = (startIndex !== -1)
-    ? allLogLevels.slice(startIndex) as LogLevel[]
-    : ['log'];
+async function bootstrap() {
+  const activeLogLevels = getLogLevels(process.env.LOG_LEVEL);
 
-  const app = await NestFactory.create(AppModule, {
+  const appOptions: NestApplicationOptions = {
     logger: activeLogLevels,
-  });
+  };
+  const app = await NestFactory.create(AppModule, appOptions);
 
   // Call `enableCors()` after creating the application instance.
   app.enableCors({
