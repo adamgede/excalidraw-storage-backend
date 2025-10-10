@@ -27,6 +27,7 @@ export class RoomsController {
     this.logger.debug(`Get room ${params.id}`);
 
     if (!data) {
+      this.logger.error(`Could not find room ${params.id}`);
       throw new NotFoundException();
     }
 
