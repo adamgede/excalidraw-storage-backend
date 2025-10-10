@@ -28,6 +28,7 @@ export class ScenesController {
     this.logger.debug(`Get scene ${params.id}`);
 
     if (!data) {
+      this.logger.error(`Could not find scene ${params.id}`);
       throw new NotFoundException();
     }
 
