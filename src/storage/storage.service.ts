@@ -7,32 +7,72 @@ export class StorageService {
   storagesMap = new Map<string, Keyv>();
 
   constructor() {
-    const uri = process.env[`STORAGE_URI`];
-    if (!uri) {
-      this.logger.warn(
-        `STORAGE_URI is undefined, will use non persistant in memory storage`,
-      );
-    }
+    try {
+      const uri = process.env[`STORAGE_URI`];
+      if (!uri) {
+        this.logger.warn(
+          `STORAGE_URI is undefined, will use non persistent in-memory storage`,
+        );
+      }
 
-    Object.keys(StorageNamespace).forEach((namespace) => {
-      const keyv = new Keyv({
-        uri,
-        namespace,
+      Object.keys(StorageNamespace).forEach((namespace) => {
+        try {
+          const keyv = new Keyv({
+            uri,
+            namespace,
+          });
+          keyv.on('error', (err) =>
+            this.logger.error(`Connection Error for namespace ${namespace}`, err),
+          );
+          this.storagesMap.set(namespace, keyv);
+        } catch (err) {
+          this.logger.error(`Failed to initialize storage for namespace ${namespace}`, err);
+        }
       });
-      keyv.on('error', (err) =>
-        this.logger.error(`Connection Error for namespace ${namespace}`, err),
-      );
-      this.storagesMap.set(namespace, keyv);
-    });
+    } catch (err) {
+      this.logger.error(`Unexpected error during StorageService initialization`, err);
+    }
   }
-  get(key: string, namespace: StorageNamespace): Promise<Buffer> {
-    return this.storagesMap.get(namespace).get(key);
+
+  async get(key: string, namespace: StorageNamespace): Promise<Buffer> {
+    try {
+      const store = this.storagesMap.get(namespace);
+      if (!store) {
+        throw new Error(`No storage found for namespace: ${namespace}`);
+      }
+      return await store.get(key);
+    } catch (err) {
+      this.logger.error(`Error getting key "${key}" from ${namespace}`, err);
+      throw err;
+    }
   }
+
   async has(key: string, namespace: StorageNamespace): Promise<boolean> {
-    return !!(await this.storagesMap.get(namespace).get(key));
+    try {
+      const store = this.storagesMap.get(namespace);
+      if (!store) {
+        throw new Error(`No storage found for namespace: ${namespace}`);
+      }
+      const value = await store.get(key);
+      return !!value;
+    } catch (err) {
+      this.logger.error(`Error checking existence of key "${key}" in ${namespace}`, err);
+      throw err;
+    }
   }
-  set(key: string, value: Buffer, namespace: StorageNamespace): Promise<true> {
-    return this.storagesMap.get(namespace).set(key, value);
+
+  async set(key: string, value: Buffer, namespace: StorageNamespace): Promise<true> {
+    try {
+      const store = this.storagesMap.get(namespace);
+      if (!store) {
+        throw new Error(`No storage found for namespace: ${namespace}`);
+      }
+      await store.set(key, value);
+      return true;
+    } catch (err) {
+      this.logger.error(`Error setting key "${key}" in ${namespace}`, err);
+      throw err;
+    }
   }
 }
 
