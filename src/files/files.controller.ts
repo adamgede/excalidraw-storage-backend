@@ -27,6 +27,7 @@ export class FilesController {
     this.logger.debug(`Get image ${params.id}`);
 
     if (!data) {
+      this.logger.error(`Could not find image: ${params.id}`);
       throw new NotFoundException();
     }
 
